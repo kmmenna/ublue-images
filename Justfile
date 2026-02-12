@@ -85,8 +85,8 @@ build-all:
 # This Justfile recipe builds a container image using Podman.
 # Uses images.yaml for base image; layers: global -> distro common -> variant.
 #
-# Example: just build bluefin desktop
-#          just build aurora desktop
+# Example: just build bluefin-dx macintel
+#          just build aurora-dx nvidia
 #
 build distro variant:
     #!/usr/bin/env bash
@@ -160,7 +160,7 @@ _rootful_load_image $target_image=image_name $tag=default_tag:
 
 # Build a bootc bootable image using Bootc Image Builder (BIB)
 # Converts a container image to a bootable image.
-# Parameters: target_image, tag (e.g. localhost/image_name, bluefin-desktop), type, config.
+# Parameters: target_image, tag (e.g. localhost/image_name, bluefin-dx-macintel), type, config.
 _build-bib $target_image $tag $type $config: (_rootful_load_image target_image tag)
     #!/usr/bin/env bash
     set -euo pipefail
@@ -191,7 +191,7 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
     sudo chown -R $USER:$USER output/
 
 # Build a QCOW2 virtual machine image (distro/variant from images.yaml)
-# Example: just build-qcow2 bluefin desktop
+# Example: just build-qcow2 bluefin-dx macintel
 [group('Build Virtal Machine Image')]
 build-qcow2 distro variant:
     just build (distro) (variant)
@@ -269,7 +269,7 @@ _run-vm-inner $distro $variant $type $config:
     (sleep 30 && xdg-open http://localhost:"$port") &
     podman run "${run_args[@]}"
 
-# Run a virtual machine from a QCOW2 image. Example: just run-vm-qcow2 bluefin desktop
+# Run a virtual machine from a QCOW2 image. Example: just run-vm-qcow2 bluefin-dx macintel
 [group('Run Virtal Machine')]
 run-vm-qcow2 distro variant:
     just _run-vm-inner (distro) (variant) qcow2 "disk_config/disk.toml"
@@ -285,7 +285,7 @@ run-vm-iso distro variant:
     just _run-vm-inner (distro) (variant) iso "disk_config/iso.toml"
 
 # Run a virtual machine using systemd-vmspawn
-# Example: just spawn-vm bluefin desktop
+# Example: just spawn-vm bluefin-dx macintel
 [group('Run Virtal Machine')]
 spawn-vm distro variant rebuild="0" type="qcow2" ram="6G":
     #!/usr/bin/env bash
