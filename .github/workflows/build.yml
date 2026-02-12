@@ -75,7 +75,7 @@ jobs:
           fi
 
   build_push:
-    name: Build and push (${{ matrix.distro }}-${{ matrix.variant }})
+    name: Build and push (${{ matrix.distro }}-${{ matrix.variant }}) ${{ matrix.base }}
     runs-on: ubuntu-24.04
     needs: prepare-matrix
     if: needs.prepare-matrix.outputs.has-images == 'true'
