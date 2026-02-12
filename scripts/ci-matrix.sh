@@ -28,11 +28,16 @@ affected_images() {
   local json_list=""
   local first=1
   while read -r distro variant base; do
-    # Include this image if any affecting path changed: global, this distro (any file under it), Containerfile, images.yaml
+    # Include this image only if a path that affects this specific (distro,variant) changed:
+    # - global/build/Containerfile/images.yaml → all images
+    # - build_files/<distro>/common.sh → all variants of this distro
+    # - build_files/<distro>/<variant>.sh → only this (distro,variant)
     if echo "$changed" | grep -qE "^(build_files/global\.sh|build_files/build-wrapper\.sh|build_files/build\.sh|Containerfile|images\.yaml)$"; then
       : "affected (global)"
-    elif echo "$changed" | grep -qE "^build_files/${distro}/"; then
-      : "affected (distro)"
+    elif echo "$changed" | grep -qE "^build_files/${distro}/common\.sh$"; then
+      : "affected (distro common)"
+    elif echo "$changed" | grep -qE "^build_files/${distro}/${variant}\.sh$"; then
+      : "affected (variant)"
     else
       continue
     fi
