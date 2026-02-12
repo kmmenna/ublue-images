@@ -1,0 +1,119 @@
+---
+name: Build disk images
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        required: true
+        type: choice
+        options:
+          - amd64
+          - arm64
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'disk_config/**'
+      - '.github/workflows/build-disk.yml'
+      - 'images.yaml'
+
+env:
+  IMAGE_NAME: ${{ github.event.repository.name }}
+  IMAGE_REGISTRY: "ghcr.io/${{ github.repository_owner }}"
+  DEFAULT_TAG: "latest"
+  BIB_IMAGE: "quay.io/centos-bootc/bootc-image-builder:latest"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prepare-disk-matrix:
+    name: Prepare disk matrix
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set disk matrix
+        id: set-matrix
+        run: |
+          chmod +x scripts/ci-disk-matrix.sh scripts/list-images.sh
+          MATRIX=$(./scripts/ci-disk-matrix.sh)
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build disk (${{ matrix.distro }}-${{ matrix.variant }}) ${{ matrix.disk-type }}
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.platform == 'arm64') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    needs: prepare-disk-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.prepare-disk-matrix.outputs.matrix) }}
+
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+
+    steps:
+      - name: Prepare environment
+        run: |
+          USER_UID=$(id -u)
+          USER_GID=$(id -g)
+          DISK_TYPE=$(echo "${{ matrix.disk-type }}" | tr ' ' '-')
+          IMAGE_TAG="${{ matrix.distro }}-${{ matrix.variant }}-latest"
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> ${GITHUB_ENV}
+          echo "DISK_TYPE=${DISK_TYPE}" >> ${GITHUB_ENV}
+          echo "USER_UID=${USER_UID}" >> ${GITHUB_ENV}
+          echo "USER_GID=${USER_GID}" >> ${GITHUB_ENV}
+
+      - name: Install dependencies
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.platform == 'arm64'
+        run: |
+          set -x
+          sudo apt update -y
+          sudo apt install -y podman
+
+      - name: Maximize build space
+        if: github.event.inputs.platform != 'arm64'
+        uses: ublue-os/remove-unwanted-software@cc0becac701cf642c8f0a6613bbdaf5dc36b259e # v9
+        with:
+          remove-codeql: true
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Prepare ISO config (anaconda-iso only)
+        if: matrix.disk-type == 'anaconda-iso'
+        run: |
+          IMAGE_REF="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}:${IMAGE_TAG}"
+          sed "s|IMAGE_REF_PLACEHOLDER|${IMAGE_REF}|g" disk_config/iso.toml > "${RUNNER_TEMP}/iso-config.toml"
+          echo "ISO_CONFIG=${RUNNER_TEMP}/iso-config.toml" >> $GITHUB_ENV
+
+      - name: Build disk images
+        id: build
+        uses: osbuild/bootc-image-builder-action@main
+        with:
+          builder-image: ${{ env.BIB_IMAGE }}
+          config-file: ${{ matrix.disk-type == 'anaconda-iso' && env.ISO_CONFIG || './disk_config/disk.toml' }}
+          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          chown: ${{ env.USER_UID }}:${{ env.USER_GID }}
+          types: ${{ matrix.disk-type }}
+          additional-args: --use-librepo=True
+
+      - name: Upload disk images and Checksum to Job Artifacts
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: disk-${{ matrix.distro }}-${{ matrix.variant }}-${{ matrix.disk-type }}
+          path: ${{ steps.build.outputs.output-directory }}
+          if-no-files-found: error
+          retention-days: 0
+          compression-level: 0
+          overwrite: true

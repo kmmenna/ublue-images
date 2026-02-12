@@ -1,0 +1,11 @@
+# Manifest of distro/variant combinations and their base images.
+# Used by Justfile and GitHub Actions to build only the requested images.
+
+bluefin:
+  laptop:
+    base: ghcr.io/ublue-os/bluefin-dx:stable
+  nvidia:
+    base: ghcr.io/ublue-os/bluefin-dx-nvidia:stable
+aurora:
+  nvidia:
+    base: ghcr.io/ublue-os/aurora-dx-nvidia:stable
