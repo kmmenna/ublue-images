@@ -16,5 +16,8 @@ DNF_NOSCRIPTS_CONF=$(mktemp)
 printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF}"
 dnf5 -c "${DNF_NOSCRIPTS_CONF}" install -y broadcom-wl
 rm -f "${DNF_NOSCRIPTS_CONF}"
-# Compilar o módulo do kernel como usuário akmods (criado pelo pacote akmods)
-runuser -u akmods -- akmods --kernels "$(uname -r)"
+# kernel-devel necessário para compilar o módulo; no CI uname -r é o kernel do host (ex.: azure), não da imagem
+dnf5 install -y kernel-devel
+# Compilar para o kernel da imagem (versão do kernel-devel instalado), não do host
+KERNEL_RELEASE=$(rpm -q kernel-devel --qf '%{version}-%{release}.%{arch}\n' | head -1)
+runuser -u akmods -- akmods --kernels "${KERNEL_RELEASE}"
