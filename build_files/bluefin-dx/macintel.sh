@@ -8,6 +8,9 @@ set -ouex pipefail
 # Habilitar repositório non-free (não vem habilitado por padrão em imagens ublue recentes)
 FEDORA_VERSION=$(rpm -E %fedora)
 dnf5 install -y "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VERSION}.noarch.rpm"
-dnf5 install -y broadcom-wl
-# Rebuild dos módulos do kernel para a imagem (akmods)
-akmods --kernels "$(uname -r)"
+# Instalar akmods primeiro para criar o usuário akmodsbuild (akmods não roda como root)
+dnf5 install -y akmods
+# Instalar broadcom-wl sem rodar scriptlets: o %post do akmod-wl chama akmods e falha como root
+dnf5 install -y --setopt=tsflags=noscripts broadcom-wl
+# Compilar o módulo do kernel como usuário akmodsbuild
+runuser -u akmodsbuild -- akmods --kernels "$(uname -r)"
