@@ -15,19 +15,25 @@ dnf5 install -y tmux
 ### Install Proton AG official packages
 
 # Proton VPN - Add official repository and install
-# Note: Using rpm --noposttrans to skip scriptlets that require systemd
-# (systemd is not available during container image build, but services will work at runtime)
+# Note: Installing dependencies first with dnf5, then Proton VPN packages with rpm --noposttrans
+# to skip scriptlets that require systemd (systemd is not available during container image build)
 FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
 wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
 dnf5 install -y /tmp/protonvpn-stable-release.rpm
 dnf5 check-update --refresh || true
-# Download Proton VPN packages with all dependencies, then install with rpm skipping posttrans scriptlets
+# Install/upgrade all dependencies first using dnf5 (handles conflicts and updates properly)
+dnf5 install -y $(dnf5 repoquery --requires --resolve proton-vpn-gnome-desktop 2>/dev/null | grep -v "^proton-vpn" | xargs) || true
+# Download only Proton VPN packages (proton-vpn-*)
 WORKDIR=$(mktemp -d)
 cd "${WORKDIR}"
-# Download package and all its dependencies
-dnf5 download -y --resolve proton-vpn-gnome-desktop
-# Install all downloaded RPMs skipping posttrans scriptlets (which require systemd)
-rpm -ivh --noposttrans "${WORKDIR}"/*.rpm
+dnf5 download -y proton-vpn-gnome-desktop
+# Filter to only Proton VPN packages to avoid conflicts with already installed dependencies
+PROTON_RPMS=$(ls "${WORKDIR}"/proton-vpn-*.rpm 2>/dev/null)
+if [ -n "${PROTON_RPMS}" ]; then
+    # Install Proton VPN packages skipping posttrans scriptlets (which require systemd)
+    # Use -Uvh to allow upgrades if packages are already installed
+    rpm -Uvh --noposttrans ${PROTON_RPMS}
+fi
 # Verify installation succeeded
 rpm -q proton-vpn-gnome-desktop
 cd -
