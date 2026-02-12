@@ -12,6 +12,26 @@ set -ouex pipefail
 # this installs a package from fedora repos
 dnf5 install -y tmux
 
+### Install Proton AG official packages
+
+# Proton VPN - Add official repository and install
+FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
+wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
+dnf5 install -y /tmp/protonvpn-stable-release.rpm
+dnf5 check-update --refresh || true
+dnf5 install -y proton-vpn-gnome-desktop
+
+# Proton Mail Desktop App - Download and install RPM
+wget -q "https://proton.me/download/mail/linux/ProtonMail-desktop-beta.rpm" -O /tmp/ProtonMail-desktop-beta.rpm
+dnf5 install -y /tmp/ProtonMail-desktop-beta.rpm
+
+# Proton Pass - Download and install RPM
+wget -q "https://proton.me/download/PassDesktop/linux/x64/ProtonPass.rpm" -O /tmp/ProtonPass.rpm
+dnf5 install -y /tmp/ProtonPass.rpm
+
+# Clean up downloaded RPM files
+rm -f /tmp/protonvpn-stable-release.rpm /tmp/ProtonMail-desktop-beta.rpm /tmp/ProtonPass.rpm
+
 # Use a COPR Example:
 #
 # dnf5 -y copr enable ublue-os/staging
