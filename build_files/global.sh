@@ -15,14 +15,23 @@ dnf5 install -y tmux
 ### Install Proton AG official packages
 
 # Proton VPN - Add official repository and install
-# Note: Using --setopt=tsflags=noposttrans to skip posttrans scriptlets that require systemd
+# Note: Using rpm --noposttrans to skip scriptlets that require systemd
 # (systemd is not available during container image build, but services will work at runtime)
 FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
 wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
 dnf5 install -y /tmp/protonvpn-stable-release.rpm
 dnf5 check-update --refresh || true
-# Install Proton VPN packages, skipping posttrans scriptlets that require systemd
-dnf5 install -y --setopt=tsflags=noposttrans proton-vpn-gnome-desktop
+# Download Proton VPN packages with all dependencies, then install with rpm skipping posttrans scriptlets
+WORKDIR=$(mktemp -d)
+cd "${WORKDIR}"
+# Download package and all its dependencies
+dnf5 download -y --resolve proton-vpn-gnome-desktop
+# Install all downloaded RPMs skipping posttrans scriptlets (which require systemd)
+rpm -ivh --noposttrans "${WORKDIR}"/*.rpm
+# Verify installation succeeded
+rpm -q proton-vpn-gnome-desktop
+cd -
+rm -rf "${WORKDIR}"
 
 # Proton Mail Desktop App - Download and install RPM
 wget -q "https://proton.me/download/mail/linux/ProtonMail-desktop-beta.rpm" -O /tmp/ProtonMail-desktop-beta.rpm
