@@ -21,13 +21,17 @@ FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
 wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
 dnf5 install -y /tmp/protonvpn-stable-release.rpm
 dnf5 check-update --refresh || true
-# Install/upgrade all dependencies first using dnf5 (handles conflicts and updates properly)
-dnf5 install -y $(dnf5 repoquery --requires --resolve proton-vpn-gnome-desktop 2>/dev/null | grep -v "^proton-vpn" | xargs) || true
-# Download only Proton VPN packages (proton-vpn-*)
+# Install/upgrade non-Proton VPN dependencies first using dnf5 (handles conflicts and updates properly)
+NON_PROTON_DEPS=$(dnf5 repoquery --requires --resolve proton-vpn-gnome-desktop 2>/dev/null | grep -v "^proton-vpn" | xargs)
+if [ -n "${NON_PROTON_DEPS}" ]; then
+    dnf5 install -y ${NON_PROTON_DEPS} || true
+fi
+# Download only Proton VPN packages (dependencies should already be installed)
 WORKDIR=$(mktemp -d)
 cd "${WORKDIR}"
-dnf5 download -y proton-vpn-gnome-desktop
-# Filter to only Proton VPN packages to avoid conflicts with already installed dependencies
+# Download Proton VPN packages and their dependencies to get all proton-vpn-* packages
+dnf5 download -y --resolve proton-vpn-gnome-desktop
+# Filter to only Proton VPN packages (these need --noposttrans to skip systemd scriptlets)
 PROTON_RPMS=$(ls "${WORKDIR}"/proton-vpn-*.rpm 2>/dev/null)
 if [ -n "${PROTON_RPMS}" ]; then
     # Install Proton VPN packages skipping posttrans scriptlets (which require systemd)
