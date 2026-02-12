@@ -12,11 +12,11 @@ set -ouex pipefail
 ### Install Proton AG official packages
 
 # Proton VPN - Add official repository and install
-FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
-wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
-dnf5 install -y /tmp/protonvpn-stable-release.rpm
-dnf5 check-update --refresh || true
-dnf5 install -y proton-vpn-gnome-desktop
+# FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
+# wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
+# dnf5 install -y /tmp/protonvpn-stable-release.rpm
+# dnf5 check-update --refresh || true
+# dnf5 install -y proton-vpn-gnome-desktop
 
 # Proton Mail Desktop App - Download and install RPM
 wget -q "https://proton.me/download/mail/linux/ProtonMail-desktop-beta.rpm" -O /tmp/ProtonMail-desktop-beta.rpm
