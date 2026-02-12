@@ -65,10 +65,10 @@ jobs:
           USER_UID=$(id -u)
           USER_GID=$(id -g)
           DISK_TYPE=$(echo "${{ matrix.disk-type }}" | tr ' ' '-')
-          IMAGE_TAG="${{ matrix.distro }}-${{ matrix.variant }}-latest"
+          IMAGE_PACKAGE="${{ matrix.distro }}-${{ matrix.variant }}"
           echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> ${GITHUB_ENV}
-          echo "IMAGE_TAG=${IMAGE_TAG}" >> ${GITHUB_ENV}
+          echo "IMAGE_PACKAGE=${IMAGE_PACKAGE,,}" >> ${GITHUB_ENV}
+          echo "IMAGE_TAG=latest" >> ${GITHUB_ENV}
           echo "DISK_TYPE=${DISK_TYPE}" >> ${GITHUB_ENV}
           echo "USER_UID=${USER_UID}" >> ${GITHUB_ENV}
           echo "USER_GID=${USER_GID}" >> ${GITHUB_ENV}
@@ -92,7 +92,7 @@ jobs:
       - name: Prepare ISO config (anaconda-iso only)
         if: matrix.disk-type == 'anaconda-iso'
         run: |
-          IMAGE_REF="${IMAGE_REGISTRY,,}/${IMAGE_NAME,,}:${IMAGE_TAG}"
+          IMAGE_REF="${IMAGE_REGISTRY,,}/${IMAGE_PACKAGE,,}:${IMAGE_TAG}"
           sed "s|IMAGE_REF_PLACEHOLDER|${IMAGE_REF}|g" disk_config/iso.toml > "${RUNNER_TEMP}/iso-config.toml"
           echo "ISO_CONFIG=${RUNNER_TEMP}/iso-config.toml" >> $GITHUB_ENV
 
@@ -102,7 +102,7 @@ jobs:
         with:
           builder-image: ${{ env.BIB_IMAGE }}
           config-file: ${{ matrix.disk-type == 'anaconda-iso' && env.ISO_CONFIG || './disk_config/disk.toml' }}
-          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_PACKAGE }}:${{ env.IMAGE_TAG }}
           chown: ${{ env.USER_UID }}:${{ env.USER_GID }}
           types: ${{ matrix.disk-type }}
           additional-args: --use-librepo=True

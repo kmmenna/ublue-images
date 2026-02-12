@@ -75,7 +75,7 @@ jobs:
           fi
 
   build_push:
-    name: Build and push (${{ matrix.distro }}-${{ matrix.variant }}) ${{ matrix.base }}
+    name: Build and push (${{ matrix.distro }}-${{ matrix.variant }})
     runs-on: ubuntu-24.04
     needs: prepare-matrix
     if: needs.prepare-matrix.outputs.has-images == 'true'
@@ -106,15 +106,28 @@ jobs:
         id: date
         run: |
           echo "date=$(date -u +%Y\-%m\-%d\T%H\:%M\:%S\Z)" >> $GITHUB_OUTPUT
+          echo "date_ymd=$(date -u +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: Get next tag number
+        id: nexttag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/get-next-tag-number.sh
+          if [[ "${{ github.event_name }}" == "pull_request" ]] || [[ "${{ github.ref }}" != "refs/heads/${{ github.event.repository.default_branch }}" ]]; then
+            echo "date_tag=${{ steps.date.outputs.date_ymd }}.1" >> $GITHUB_OUTPUT
+          else
+            NEXT=$(./scripts/get-next-tag-number.sh "${{ github.repository_owner }}" "${{ env.IMAGE_TAG }}" "${{ steps.date.outputs.date_ymd }}")
+            echo "date_tag=${{ steps.date.outputs.date_ymd }}.${NEXT}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Image Metadata
         uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         id: metadata
         with:
           tags: |
-            type=raw,value=${{ env.IMAGE_TAG }}
-            type=raw,value=${{ env.IMAGE_TAG }}.{{date 'YYYYMMDD'}}
-            type=raw,value=${{ env.DEFAULT_TAG }}.{{date 'YYYYMMDD'}}
+            type=raw,value=latest
+            type=raw,value=${{ steps.nexttag.outputs.date_tag }}
             type=sha,enable=${{ github.event_name == 'pull_request' }}
             type=ref,event=pr
           labels: |
@@ -123,10 +136,10 @@ jobs:
             org.opencontainers.image.description=${{ env.IMAGE_DESC }}
             org.opencontainers.image.documentation=https://raw.githubusercontent.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/${{ github.sha }}/README.md
             org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/blob/${{ github.sha }}/Containerfile
-            org.opencontainers.image.title=${{ env.IMAGE_NAME }}
+            org.opencontainers.image.title=${{ env.IMAGE_TAG }}
             org.opencontainers.image.url=https://github.com/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}/tree/${{ github.sha }}
             org.opencontainers.image.vendor=${{ github.repository_owner }}
-            org.opencontainers.image.version=${{ env.IMAGE_TAG }}.{{date 'YYYYMMDD'}}
+            org.opencontainers.image.version=${{ steps.nexttag.outputs.date_tag }}
             io.artifacthub.package.deprecated=false
             io.artifacthub.package.keywords=${{ env.IMAGE_KEYWORDS }}
             io.artifacthub.package.license=Apache-2.0
@@ -146,7 +159,7 @@ jobs:
             BASE_IMAGE=${{ matrix.base }}
             DISTRO=${{ matrix.distro }}
             VARIANT=${{ matrix.variant }}
-          image: ${{ env.IMAGE_NAME }}
+          image: ${{ env.IMAGE_TAG }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           oci: false
@@ -168,7 +181,7 @@ jobs:
           REGISTRY_PASSWORD: ${{ github.token }}
         with:
           registry: ${{ env.IMAGE_REGISTRY }}
-          image: ${{ env.IMAGE_NAME }}
+          image: ${{ env.IMAGE_TAG }}
           tags: ${{ steps.metadata.outputs.tags }}
           username: ${{ env.REGISTRY_USER }}
           password: ${{ env.REGISTRY_PASSWORD }}
@@ -182,7 +195,7 @@ jobs:
       - name: Sign container image
         if: github.event_name != 'pull_request' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
         run: |
-          IMAGE_FULL="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}"
+          IMAGE_FULL="${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_TAG }}"
           for tag in ${{ steps.metadata.outputs.tags }}; do
             cosign sign -y --key env://COSIGN_PRIVATE_KEY $IMAGE_FULL:$tag
           done
