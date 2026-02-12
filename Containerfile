@@ -1,9 +1,11 @@
+# Base Image (set via --build-arg; default for local single-image builds)
+# Must be declared before any FROM so it can be used in FROM ${BASE_IMAGE}
+ARG BASE_IMAGE=ghcr.io/ublue-os/bluefin-dx:stable
+
 # Allow build scripts to be referenced without being copied into the final image
 FROM scratch AS ctx
 COPY build_files /
 
-# Base Image (set via --build-arg; default for local single-image builds)
-ARG BASE_IMAGE=ghcr.io/ublue-os/bluefin-dx:stable
 FROM ${BASE_IMAGE}
 
 ## Other possible base images (see images.yaml for distro/variant -> base mapping):
