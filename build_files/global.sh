@@ -18,7 +18,10 @@ DNF_NOSCRIPTS_CONF=$(mktemp)
 printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF}"
 dnf5 -c "${DNF_NOSCRIPTS_CONF}" install -y proton-vpn-gnome-desktop
 rm -f "${DNF_NOSCRIPTS_CONF}"
-systemctl enable me.proton.vpn.daemon
+# Enable daemon unit(s) from proton-vpn-daemon (exact unit name varies by package version)
+for unit in $(rpm -ql proton-vpn-daemon 2>/dev/null | grep '\.service$'); do
+  systemctl enable "$(basename "$unit")"
+done
 
 # Proton Mail Desktop App - Download and install RPM
 wget -q "https://proton.me/download/mail/linux/ProtonMail-desktop-beta.rpm" -O /tmp/ProtonMail-desktop-beta.rpm
