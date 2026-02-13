@@ -12,7 +12,7 @@ FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
 wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
 dnf5 install -y /tmp/protonvpn-stable-release.rpm
 rm -f /tmp/protonvpn-stable-release.rpm
-dnf5 check-update --refresh
+dnf5 check-update --refresh || true
 dnf5 install -y proton-vpn-gnome-desktop
 
 # Proton Mail Desktop App - Download and install RPM
