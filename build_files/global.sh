@@ -9,11 +9,16 @@ FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
 ### Install Proton AG official packages
 
 # Proton VPN - Add official repository and install
+# Install with tsflags=noscripts: the daemon's %posttrans tries to run systemctl (no systemd in container build).
 wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
 dnf5 install -y /tmp/protonvpn-stable-release.rpm
 rm -f /tmp/protonvpn-stable-release.rpm
 dnf5 check-update --refresh || true
-dnf5 install -y proton-vpn-gnome-desktop
+DNF_NOSCRIPTS_CONF=$(mktemp)
+printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF}"
+dnf5 -c "${DNF_NOSCRIPTS_CONF}" install -y proton-vpn-gnome-desktop
+rm -f "${DNF_NOSCRIPTS_CONF}"
+systemctl enable me.proton.vpn.daemon
 
 # Proton Mail Desktop App - Download and install RPM
 wget -q "https://proton.me/download/mail/linux/ProtonMail-desktop-beta.rpm" -O /tmp/ProtonMail-desktop-beta.rpm
