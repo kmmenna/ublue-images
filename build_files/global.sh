@@ -2,33 +2,36 @@
 
 set -ouex pipefail
 
-### Install packages (global - applied to all images)
+FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
 
-# Packages can be installed from any enabled yum repo on the image.
-# RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/43/x86_64/repoview/index.html&protocol=https&redirect=1
+### Install packages (global - applied to all images)
 
 ### Install Proton AG official packages
 
 # Proton VPN - Add official repository and install
-# FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
-# wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
-# dnf5 install -y /tmp/protonvpn-stable-release.rpm
-# dnf5 check-update --refresh || true
-# dnf5 install -y proton-vpn-gnome-desktop
+# Install with tsflags=noscripts: the daemon's %posttrans tries to run systemctl (no systemd in container build).
+wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
+dnf5 install -y /tmp/protonvpn-stable-release.rpm
+rm -f /tmp/protonvpn-stable-release.rpm
+dnf5 check-update --refresh || true
+DNF_NOSCRIPTS_CONF=$(mktemp)
+printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF}"
+dnf5 -c "${DNF_NOSCRIPTS_CONF}" install -y proton-vpn-gnome-desktop
+rm -f "${DNF_NOSCRIPTS_CONF}"
+# Enable daemon unit(s) from proton-vpn-daemon (exact unit name varies by package version)
+for unit in $(rpm -ql proton-vpn-daemon 2>/dev/null | grep '\.service$'); do
+  systemctl enable "$(basename "$unit")"
+done
 
 # Proton Mail Desktop App - Download and install RPM
 wget -q "https://proton.me/download/mail/linux/ProtonMail-desktop-beta.rpm" -O /tmp/ProtonMail-desktop-beta.rpm
 dnf5 install -y /tmp/ProtonMail-desktop-beta.rpm
+rm -f /tmp/ProtonMail-desktop-beta.rpm
 
 # Proton Pass - Download and install RPM
 wget -q "https://proton.me/download/PassDesktop/linux/x64/ProtonPass.rpm" -O /tmp/ProtonPass.rpm
 dnf5 install -y /tmp/ProtonPass.rpm
-
-# Clean up downloaded RPM files
-rm -f /tmp/protonvpn-stable-release.rpm /tmp/ProtonMail-desktop-beta.rpm /tmp/ProtonPass.rpm
-
+rm -f /tmp/ProtonPass.rpm
 
 # Use a COPR Example:
 #
