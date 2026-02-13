@@ -20,4 +20,12 @@ rm -f "${DNF_NOSCRIPTS_CONF}"
 dnf5 install -y kernel-devel
 # Compilar para o kernel da imagem (versão do kernel-devel instalado), não do host
 KERNEL_RELEASE=$(rpm -q kernel-devel --qf '%{version}-%{release}.%{arch}\n' | head -1)
-runuser -u akmods -- akmods --kernels "${KERNEL_RELEASE}"
+# akmods como usuário compila mas não pode instalar o RPM; usar akmodsbuild para gerar o RPM e instalar como root
+AKMODS_OUT=$(mktemp -d)
+chown akmods:akmods "${AKMODS_OUT}"
+WL_SRC_RPM=$(find /usr/src/akmods -name 'wl-kmod*.src.rpm' | head -1)
+# akmodsbuild ignora TMPDIR e usa mktemp em /tmp; no container /tmp precisa ser gravável por akmods
+chmod 1777 /tmp
+runuser -u akmods -- akmodsbuild -o "${AKMODS_OUT}" -k "${KERNEL_RELEASE}" "${WL_SRC_RPM}"
+dnf5 install -y "${AKMODS_OUT}"/*.rpm
+rm -rf "${AKMODS_OUT}"
