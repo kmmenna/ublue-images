@@ -90,10 +90,10 @@ Default image name and tag can be set via environment variables `IMAGE_NAME` and
 
 ## Disk images (QCOW2, raw, ISO)
 
-Build a QCOW2 VM image (builds the container first, then the disk):
+Disk image builds require **root** (Bootc Image Builder runs privileged). Use `sudo`:
 
 ```bash
-just build-qcow2 bluefin-dx macintel
+sudo just build-qcow2 bluefin-dx macintel
 ```
 
 Similar commands: `build-raw`, `build-iso`. Output goes under `output/`. To run a VM from a QCOW2 image:
