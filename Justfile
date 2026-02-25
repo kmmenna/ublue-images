@@ -146,16 +146,28 @@ _rootful_load_image $target_image=image_name $tag=default_tag:
 
     if [[ $return_code -eq 0 ]]; then
         # If the image is found, load it into rootful podman
-        ID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'")
+        if ! ID=$(just sudoif podman images --filter reference="${target_image}:${tag}" --format "'{{ '{{.ID}}' }}'" 2>/dev/null); then
+            echo "ERROR: Could not access rootful podman. Disk image builds require root for Bootc Image Builder."
+            echo "Run the build with sudo: sudo just build-iso <distro> <variant>"
+            echo "Example: sudo just build-iso bluefin-dx macintel"
+            exit 1
+        fi
         if [[ "$ID" != "$USER_IMG_ID" ]]; then
             # If the image ID is not found or different from user, copy the image from user podman to root podman
             COPYTMP=$(mktemp -p "${PWD}" -d -t _build_podman_scp.XXXXXXXXXX)
-            just sudoif TMPDIR=${COPYTMP} podman image scp ${UID}@localhost::"${target_image}:${tag}" root@localhost::"${target_image}:${tag}"
+            if ! just sudoif TMPDIR=${COPYTMP} podman image scp ${UID}@localhost::"${target_image}:${tag}" root@localhost::"${target_image}:${tag}" 2>/dev/null; then
+                echo "ERROR: Could not copy image to rootful podman. Disk image builds require root."
+                echo "Run the build with sudo: sudo just build-iso <distro> <variant>"
+                exit 1
+            fi
             rm -rf "${COPYTMP}"
         fi
     else
         # If the image is not found, pull it from the repository
-        just sudoif podman pull "${target_image}:${tag}"
+        if ! just sudoif podman pull "${target_image}:${tag}" 2>/dev/null; then
+            echo "ERROR: Could not pull image with rootful podman. Run with sudo: sudo just build-iso <distro> <variant>"
+            exit 1
+        fi
     fi
 
 # Build a bootc bootable image using Bootc Image Builder (BIB)
@@ -194,38 +206,38 @@ _build-bib $target_image $tag $type $config: (_rootful_load_image target_image t
 # Example: just build-qcow2 bluefin-dx macintel
 [group('Build Virtal Machine Image')]
 build-qcow2 distro variant:
-    just build (distro) (variant)
-    just _build-bib ("localhost/" + image_name) (distro + "-" + variant) qcow2 "disk_config/disk.toml"
+    just build {{ distro }} {{ variant }}
+    just _build-bib {{ "localhost/" + image_name }} {{ distro + "-" + variant }} qcow2 "disk_config/disk.toml"
 
 # Build a RAW virtual machine image
 [group('Build Virtal Machine Image')]
 build-raw distro variant:
-    just build (distro) (variant)
-    just _build-bib ("localhost/" + image_name) (distro + "-" + variant) raw "disk_config/disk.toml"
+    just build {{ distro }} {{ variant }}
+    just _build-bib {{ "localhost/" + image_name }} {{ distro + "-" + variant }} raw "disk_config/disk.toml"
 
 # Build an ISO virtual machine image
 [group('Build Virtal Machine Image')]
 build-iso distro variant:
-    just build (distro) (variant)
-    just _build-bib ("localhost/" + image_name) (distro + "-" + variant) iso "disk_config/iso.toml"
+    just build {{ distro }} {{ variant }}
+    just _build-bib {{ "localhost/" + image_name }} {{ distro + "-" + variant }} iso "disk_config/iso.toml"
 
 # Rebuild a QCOW2 virtual machine image
 [group('Build Virtal Machine Image')]
 rebuild-qcow2 distro variant:
-    just build (distro) (variant)
-    just _build-bib ("localhost/" + image_name) (distro + "-" + variant) qcow2 "disk_config/disk.toml"
+    just build {{ distro }} {{ variant }}
+    just _build-bib {{ "localhost/" + image_name }} {{ distro + "-" + variant }} qcow2 "disk_config/disk.toml"
 
 # Rebuild a RAW virtual machine image
 [group('Build Virtal Machine Image')]
 rebuild-raw distro variant:
-    just build (distro) (variant)
-    just _build-bib ("localhost/" + image_name) (distro + "-" + variant) raw "disk_config/disk.toml"
+    just build {{ distro }} {{ variant }}
+    just _build-bib {{ "localhost/" + image_name }} {{ distro + "-" + variant }} raw "disk_config/disk.toml"
 
 # Rebuild an ISO virtual machine image
 [group('Build Virtal Machine Image')]
 rebuild-iso distro variant:
-    just build (distro) (variant)
-    just _build-bib ("localhost/" + image_name) (distro + "-" + variant) iso "disk_config/iso.toml"
+    just build {{ distro }} {{ variant }}
+    just _build-bib {{ "localhost/" + image_name }} {{ distro + "-" + variant }} iso "disk_config/iso.toml"
 
 # Internal: run VM (called by run-vm-* with type and config from script).
 _run-vm-inner $distro $variant $type $config:
@@ -272,17 +284,17 @@ _run-vm-inner $distro $variant $type $config:
 # Run a virtual machine from a QCOW2 image. Example: just run-vm-qcow2 bluefin-dx macintel
 [group('Run Virtal Machine')]
 run-vm-qcow2 distro variant:
-    just _run-vm-inner (distro) (variant) qcow2 "disk_config/disk.toml"
+    just _run-vm-inner {{ distro }} {{ variant }} qcow2 "disk_config/disk.toml"
 
 # Run a virtual machine from a RAW image
 [group('Run Virtal Machine')]
 run-vm-raw distro variant:
-    just _run-vm-inner (distro) (variant) raw "disk_config/disk.toml"
+    just _run-vm-inner {{ distro }} {{ variant }} raw "disk_config/disk.toml"
 
 # Run a virtual machine from an ISO
 [group('Run Virtal Machine')]
 run-vm-iso distro variant:
-    just _run-vm-inner (distro) (variant) iso "disk_config/iso.toml"
+    just _run-vm-inner {{ distro }} {{ variant }} iso "disk_config/iso.toml"
 
 # Run a virtual machine using systemd-vmspawn
 # Example: just spawn-vm bluefin-dx macintel
