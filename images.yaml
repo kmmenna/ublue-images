@@ -8,4 +8,4 @@ bluefin-dx:
     base: ghcr.io/ublue-os/bluefin-dx-nvidia-open:stable
 aurora-dx:
   nvidia:
-    base: ghcr.io/ublue-os/aurora-dx-nvidia:stable
+    base: ghcr.io/ublue-os/aurora-dx-nvidia-open:stable

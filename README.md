@@ -46,6 +46,7 @@ Defined in `images.yaml`. Every image receives **global** customizations first, 
 
 ### Global customizations (all images)
 
+- **Cursor IDE**: installed via official RPM (avoiding Flatpak issues).
 - **Proton apps**: Proton Mail Desktop (beta), Proton Pass (official RPMs).
 - **Services**: `podman.socket` enabled.
 
