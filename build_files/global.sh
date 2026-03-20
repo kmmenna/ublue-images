@@ -33,6 +33,23 @@ wget -q "https://proton.me/download/PassDesktop/linux/x64/ProtonPass.rpm" -O /tm
 dnf5 install -y /tmp/ProtonPass.rpm
 rm -f /tmp/ProtonPass.rpm
 
+# Cursor IDE - install RPM (avoid Flatpak issues)
+CURSOR_ARCH="$(uname -m)"
+case "${CURSOR_ARCH}" in
+  x86_64) CURSOR_ARCH="x64" ;;
+  aarch64) CURSOR_ARCH="arm64" ;;
+  *)
+    echo "Unsupported architecture for Cursor RPM: $(uname -m)" >&2
+    exit 1
+    ;;
+esac
+wget -q "https://api2.cursor.sh/updates/download/golden/linux-${CURSOR_ARCH}-rpm/cursor/latest" -O /tmp/cursor.rpm
+DNF_NOSCRIPTS_CONF_CURSOR="$(mktemp)"
+printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF_CURSOR}"
+dnf5 -c "${DNF_NOSCRIPTS_CONF_CURSOR}" install -y /tmp/cursor.rpm
+rm -f "${DNF_NOSCRIPTS_CONF_CURSOR}"
+rm -f /tmp/cursor.rpm
+
 # Use a COPR Example:
 #
 # dnf5 -y copr enable ublue-os/staging
