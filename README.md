@@ -46,8 +46,8 @@ Defined in `images.yaml`. Every image receives **global** customizations first, 
 
 ### Global customizations (all images)
 
-- **Cursor IDE**: installed via official RPM with `tsflags=noscripts` (avoiding Flatpak issues and install scriptlets that fail in container builds).
-- **ChatGPT Desktop / Codex**: installed via official OpenAI RPM with `tsflags=noscripts`; the packaged `chatgpt.repo` is left disabled so updates come from image rebuilds, not rpm-ostree/dnf layering.
+- **Cursor IDE**: installed via official RPM with `tsflags=noscripts` (avoiding Flatpak issues and install scriptlets that fail in container builds); URL/MIME handlers are registered by the final desktop/MIME DB refresh in `build-wrapper.sh`.
+- **ChatGPT Desktop / Codex**: installed via official OpenAI RPM with `tsflags=noscripts`; the packaged `chatgpt.repo` is left disabled so updates come from image rebuilds, not rpm-ostree/dnf layering; scheme handlers (e.g. `codex://`) are registered by the same final DB refresh.
 - **Proton apps**: Proton VPN (GNOME desktop + daemon), Proton Mail Desktop (beta), Proton Pass (official RPMs).
 - **Services**: `podman.socket` enabled.
 
@@ -119,6 +119,7 @@ At build time the Containerfile runs `build-wrapper.sh`, which executes in order
 1. **`global.sh`** — applied to every image.
 2. **`build_files/<distro>/common.sh`** — applied to all variants of that distro.
 3. **`build_files/<distro>/<variant>.sh`** — applied only to that (distro, variant).
+4. **Desktop/MIME DB refresh** — `update-desktop-database` and `update-mime-database`, so URL scheme handlers and MIME types from packages installed with `tsflags=noscripts` (and any future layered apps) are registered in the system caches.
 
 Edit these scripts to add packages, repos, or other changes. The CI matrix only rebuilds images whose layers (or `Containerfile` / `images.yaml`) changed.
 
