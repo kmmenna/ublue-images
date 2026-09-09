@@ -50,6 +50,32 @@ dnf5 -c "${DNF_NOSCRIPTS_CONF_CURSOR}" install -y /tmp/cursor.rpm
 rm -f "${DNF_NOSCRIPTS_CONF_CURSOR}"
 rm -f /tmp/cursor.rpm
 
+# ChatGPT Desktop / Codex App - install official RPM
+# Install with tsflags=noscripts: %post runs refresh_dnf5_keys (python/libdnf5)
+# and apparmor_parser without || true — can fail in container builds.
+# Unlike Cursor, OpenAI ships chatgpt.repo + GPG keys in the payload; disable
+# the repo so updates come from image rebuilds, not rpm-ostree/dnf layering.
+CHATGPT_ARCH="$(uname -m)"
+case "${CHATGPT_ARCH}" in
+  x86_64) CHATGPT_RPM_ARCH="x86_64" ;;
+  aarch64) CHATGPT_RPM_ARCH="aarch64" ;;
+  *)
+    echo "Unsupported architecture for ChatGPT RPM: ${CHATGPT_ARCH}" >&2
+    exit 1
+    ;;
+esac
+wget -q \
+  "https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.${CHATGPT_RPM_ARCH}.rpm" \
+  -O /tmp/chatgpt.rpm
+DNF_NOSCRIPTS_CONF_CHATGPT="$(mktemp)"
+printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF_CHATGPT}"
+dnf5 -c "${DNF_NOSCRIPTS_CONF_CHATGPT}" install -y /tmp/chatgpt.rpm
+rm -f "${DNF_NOSCRIPTS_CONF_CHATGPT}"
+rm -f /tmp/chatgpt.rpm
+if [ -f /etc/yum.repos.d/chatgpt.repo ]; then
+  sed -i 's/^enabled=1$/enabled=0/' /etc/yum.repos.d/chatgpt.repo
+fi
+
 # Use a COPR Example:
 #
 # dnf5 -y copr enable ublue-os/staging

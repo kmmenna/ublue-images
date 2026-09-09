@@ -46,8 +46,9 @@ Defined in `images.yaml`. Every image receives **global** customizations first, 
 
 ### Global customizations (all images)
 
-- **Cursor IDE**: installed via official RPM (avoiding Flatpak issues).
-- **Proton apps**: Proton Mail Desktop (beta), Proton Pass (official RPMs).
+- **Cursor IDE**: installed via official RPM with `tsflags=noscripts` (avoiding Flatpak issues and install scriptlets that fail in container builds).
+- **ChatGPT Desktop / Codex**: installed via official OpenAI RPM with `tsflags=noscripts`; the packaged `chatgpt.repo` is left disabled so updates come from image rebuilds, not rpm-ostree/dnf layering.
+- **Proton apps**: Proton VPN (GNOME desktop + daemon), Proton Mail Desktop (beta), Proton Pass (official RPMs).
 - **Services**: `podman.socket` enabled.
 
 ### Per-image summary
