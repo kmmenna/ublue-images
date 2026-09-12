@@ -76,6 +76,34 @@ if [ -f /etc/yum.repos.d/chatgpt.repo ]; then
   sed -i 's/^enabled=1$/enabled=0/' /etc/yum.repos.d/chatgpt.repo
 fi
 
+# OpenLogi - official RPM (https://openlogi.org/#install)
+# Install with tsflags=noscripts: %post runs udevadm with set -eu (no udev in
+# container builds). udev rules ship in the payload and apply on first boot.
+# Enable the packaged user unit globally so the HID++ agent starts at login.
+OPENLOGI_ARCH="$(uname -m)"
+case "${OPENLOGI_ARCH}" in
+  x86_64) OPENLOGI_GH_ARCH="amd64" ;;
+  aarch64) OPENLOGI_GH_ARCH="arm64" ;;
+  *)
+    echo "Unsupported architecture for OpenLogi RPM: ${OPENLOGI_ARCH}" >&2
+    exit 1
+    ;;
+esac
+OPENLOGI_TAG="$(curl -fsSL -D - -o /dev/null https://github.com/AprilNEA/OpenLogi/releases/latest | awk 'tolower($1)=="location:"{gsub("\r","",$2); n=split($2,a,"/"); print a[n]; exit}')"
+if [ -z "${OPENLOGI_TAG}" ]; then
+  echo "Failed to resolve latest OpenLogi release tag" >&2
+  exit 1
+fi
+wget -q \
+  "https://github.com/AprilNEA/OpenLogi/releases/download/${OPENLOGI_TAG}/openlogi-${OPENLOGI_TAG}-linux-${OPENLOGI_GH_ARCH}.rpm" \
+  -O /tmp/openlogi.rpm
+DNF_NOSCRIPTS_CONF_OPENLOGI="$(mktemp)"
+printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF_OPENLOGI}"
+dnf5 -c "${DNF_NOSCRIPTS_CONF_OPENLOGI}" install -y /tmp/openlogi.rpm
+rm -f "${DNF_NOSCRIPTS_CONF_OPENLOGI}"
+rm -f /tmp/openlogi.rpm
+systemctl --global enable openlogi-agent.service
+
 # Use a COPR Example:
 #
 # dnf5 -y copr enable ublue-os/staging
