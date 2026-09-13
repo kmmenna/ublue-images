@@ -49,7 +49,8 @@ Defined in `images.yaml`. Every image receives **global** customizations first, 
 - **Cursor IDE**: installed via official RPM with `tsflags=noscripts` (avoiding Flatpak issues and install scriptlets that fail in container builds); URL/MIME handlers are registered by the final desktop/MIME DB refresh in `build-wrapper.sh`.
 - **ChatGPT Desktop / Codex**: installed via official OpenAI RPM with `tsflags=noscripts`; the packaged `chatgpt.repo` is left disabled so updates come from image rebuilds, not rpm-ostree/dnf layering; scheme handlers (e.g. `codex://`) are registered by the same final DB refresh.
 - **OpenLogi**: installed via official GitHub RPM with `tsflags=noscripts`; the user unit `openlogi-agent.service` is enabled globally so the HID++ agent starts at login.
-- **Gamescope**: installed from Fedora repos for nested Steam/game sessions.
+- **RPM Fusion**: free and nonfree repos enabled on every image (Bluefin/ublue do not ship them by default).
+- **Gaming stack**: Steam, Gamescope, GameMode, and MangoHud.
 - **Proton apps**: Proton VPN (GNOME desktop + daemon), Proton Mail Desktop (beta), Proton Pass (official RPMs).
 - **Services**: `podman.socket` enabled.
 
@@ -57,7 +58,7 @@ Defined in `images.yaml`. Every image receives **global** customizations first, 
 
 | Distro      | Variant  | Base image | Customizations |
 |-------------|----------|------------|----------------|
-| **bluefin-dx** | macintel | `ghcr.io/ublue-os/bluefin-dx:stable` | Global + **Broadcom WiFi**: RPM Fusion non-free, `akmods`, `broadcom-wl` (e.g. BCM4360); kernel-devel and wl kernel module built at image build time. |
+| **bluefin-dx** | macintel | `ghcr.io/ublue-os/bluefin-dx:stable` | Global + **Broadcom WiFi**: `akmods`, `broadcom-wl` (e.g. BCM4360); kernel-devel and wl kernel module built at image build time (RPM Fusion already enabled globally). |
 | **bluefin-dx** | nvidia   | `ghcr.io/ublue-os/bluefin-dx-nvidia:stable` | Global only (Nvidia stack comes from base). |
 | **aurora-dx**  | nvidia   | `ghcr.io/ublue-os/aurora-dx-nvidia:stable` | Global only (Nvidia stack comes from base). |
 

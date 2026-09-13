@@ -2,12 +2,19 @@
 
 set -ouex pipefail
 
-FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
+FEDORA_VERSION=$(rpm -E %fedora)
 
 ### Install packages (global - applied to all images)
 
-# Gamescope nested compositor (Steam/game sessions)
-dnf5 install -y gamescope
+# RPM Fusion free + nonfree (not enabled by default on Bluefin/ublue).
+# Leave enabled so later layers and image rebuilds can pull from these repos.
+dnf5 install -y \
+  "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VERSION}.noarch.rpm" \
+  "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VERSION}.noarch.rpm"
+
+# Steam + Gamescope stack
+dnf5 install -y steam gamescope gamemode mangohud
+dnf5 clean all
 
 ### Install Proton AG official packages
 
