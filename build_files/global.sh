@@ -6,6 +6,9 @@ FEDORA_VERSION=$(cat /etc/fedora-release | cut -d' ' -f 3)
 
 ### Install packages (global - applied to all images)
 
+# Gamescope nested compositor (Steam/game sessions)
+dnf5 install -y gamescope
+
 ### Install Proton AG official packages
 
 # Proton VPN - Add official repository and install
