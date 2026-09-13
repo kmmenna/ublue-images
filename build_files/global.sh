@@ -89,8 +89,13 @@ case "${OPENLOGI_ARCH}" in
     exit 1
     ;;
 esac
-OPENLOGI_TAG="$(curl -fsSL -D - -o /dev/null https://github.com/AprilNEA/OpenLogi/releases/latest | awk 'tolower($1)=="location:"{gsub("\r","",$2); n=split($2,a,"/"); print a[n]; exit}')"
-if [ -z "${OPENLOGI_TAG}" ]; then
+# Write headers to a file: piping Location into awk makes awk exit early,
+# curl then hits "Failed writing headers" (exit 23) and pipefail aborts the build.
+OPENLOGI_HEADERS="$(mktemp)"
+curl -fsSL -D "${OPENLOGI_HEADERS}" -o /dev/null https://github.com/AprilNEA/OpenLogi/releases/latest
+OPENLOGI_TAG="$(awk 'tolower($1)=="location:"{gsub("\r","",$2); n=split($2,a,"/"); print a[n]; exit}' "${OPENLOGI_HEADERS}")"
+rm -f "${OPENLOGI_HEADERS}"
+if [ -z "${OPENLOGI_TAG}" ] || [ "${OPENLOGI_TAG}" = "latest" ]; then
   echo "Failed to resolve latest OpenLogi release tag" >&2
   exit 1
 fi
