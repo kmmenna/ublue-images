@@ -1,5 +1,5 @@
 #!/bin/bash
-# Orchestrates layered customizations: global -> distro common -> variant.
+# Orchestrates layered customizations: global -> shared (opt-out) -> distro common -> variant.
 # Expects DISTRO and VARIANT in the environment (set via Containerfile ARG/ENV).
 
 set -ouex pipefail
@@ -15,6 +15,13 @@ run_script() {
 }
 
 run_script "${CTX}/global.sh"
+
+# Shared layers live in one place so they are not copied into every distro.
+# Bazzite already ships the gaming stack; skip it there.
+if [[ "${DISTRO}" != bazzite-* ]]; then
+  run_script "${CTX}/shared/gaming.sh"
+fi
+
 run_script "${CTX}/${DISTRO}/common.sh"
 run_script "${CTX}/${DISTRO}/${VARIANT}.sh"
 

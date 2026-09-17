@@ -83,7 +83,7 @@ build-all:
     done < <(./scripts/list-images.sh)
 
 # This Justfile recipe builds a container image using Podman.
-# Uses images.yaml for base image; layers: global -> distro common -> variant.
+# Uses images.yaml for base image; layers: global -> shared (non-Bazzite) -> distro common -> variant.
 #
 # Example: just build bluefin-dx macintel
 #          just build aurora-dx nvidia

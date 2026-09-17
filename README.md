@@ -1,11 +1,11 @@
 # ublue-images
 
-Repository for my custom [Universal Blue](https://universal-blue.org/) (ublue) container images. Images are based on Bluefin DX and Aurora DX, with layered customizations. The project builds container images for GitHub Container Registry (GHCR) and can produce bootable disk images (QCOW2, raw, ISO) via [Bootc Image Builder](https://github.com/osbuild/bootc-image-builder).
+Repository for my custom [Universal Blue](https://universal-blue.org/) (ublue) container images. Images are based on Bluefin DX, Aurora DX, and Bazzite DX, with layered customizations. The project builds container images for GitHub Container Registry (GHCR) and can produce bootable disk images (QCOW2, raw, ISO) via [Bootc Image Builder](https://github.com/osbuild/bootc-image-builder).
 
 ## Features
 
 - **Multi-image matrix**: Builds several distro/variant combinations from a single repo (see `images.yaml`).
-- **Layered customizations**: Global → distro common → variant scripts in `build_files/`.
+- **Layered customizations**: Global → shared (opt-out) → distro common → variant scripts in `build_files/`.
 - **CI/CD**: GitHub Actions build and push images on push/PR to main; optional Cosign signing.
 - **Disk images**: Optional local builds of QCOW2, raw, or anaconda ISO using Bootc Image Builder and `just`.
 
@@ -14,13 +14,18 @@ Repository for my custom [Universal Blue](https://universal-blue.org/) (ublue) c
 ```
 ├── build_files/           # Image customizations (run at build time)
 │   ├── global.sh          # Applied to all images
-│   ├── build-wrapper.sh   # Orchestrator: global → distro common → variant
+│   ├── shared/            # Shared layers (opt-out per distro in the wrapper)
+│   │   └── gaming.sh      # Steam/Gamescope stack; skipped on Bazzite
+│   ├── build-wrapper.sh   # Orchestrator: global → shared → distro common → variant
 │   ├── build.sh           # Shim for default distro/variant
 │   ├── bluefin-dx/
 │   │   ├── common.sh      # Bluefin DX–specific
 │   │   ├── macintel.sh
 │   │   └── nvidia.sh
-│   └── aurora-dx/
+│   ├── aurora-dx/
+│   │   ├── common.sh
+│   │   └── nvidia.sh
+│   └── bazzite-dx/
 │       ├── common.sh
 │       └── nvidia.sh
 ├── disk_config/           # Bootc Image Builder configs
@@ -42,7 +47,7 @@ Repository for my custom [Universal Blue](https://universal-blue.org/) (ublue) c
 
 ## Images (distros and variants)
 
-Defined in `images.yaml`. Every image receives **global** customizations first, then **distro common**, then **variant-specific** (see `build_files/`).
+Defined in `images.yaml`. Every image receives **global** customizations first, then **shared** layers (unless the distro opts out), then **distro common**, then **variant-specific** (see `build_files/`).
 
 ### Global customizations (all images)
 
@@ -50,17 +55,21 @@ Defined in `images.yaml`. Every image receives **global** customizations first, 
 - **ChatGPT Desktop / Codex**: installed via official OpenAI RPM with `tsflags=noscripts`; the packaged `chatgpt.repo` is left disabled so updates come from image rebuilds, not rpm-ostree/dnf layering; scheme handlers (e.g. `codex://`) are registered by the same final DB refresh.
 - **OpenLogi**: installed via official GitHub RPM with `tsflags=noscripts`; the user unit `openlogi-agent.service` is enabled globally so the HID++ agent starts at login.
 - **RPM Fusion**: free and nonfree repos enabled on every image (Bluefin/ublue do not ship them by default).
-- **Gaming stack**: Steam, Gamescope, GameMode, and MangoHud.
 - **Proton apps**: Proton VPN (GNOME desktop + daemon), Proton Mail Desktop (beta), Proton Pass (official RPMs).
 - **Services**: `podman.socket` enabled.
+
+### Shared customizations (all images except Bazzite)
+
+- **Gaming stack**: Steam, Gamescope, GameMode, and MangoHud (`build_files/shared/gaming.sh`). Bazzite already ships this stack, so the wrapper skips it there.
 
 ### Per-image summary
 
 | Distro      | Variant  | Base image | Customizations |
 |-------------|----------|------------|----------------|
-| **bluefin-dx** | macintel | `ghcr.io/ublue-os/bluefin-dx:stable` | Global + **Broadcom WiFi**: `akmods`, `broadcom-wl` (e.g. BCM4360); kernel-devel and wl kernel module built at image build time (RPM Fusion already enabled globally). |
-| **bluefin-dx** | nvidia   | `ghcr.io/ublue-os/bluefin-dx-nvidia:stable` | Global only (Nvidia stack comes from base). |
-| **aurora-dx**  | nvidia   | `ghcr.io/ublue-os/aurora-dx-nvidia:stable` | Global only (Nvidia stack comes from base). |
+| **bluefin-dx** | macintel | `ghcr.io/ublue-os/bluefin-dx:stable` | Global + gaming + **Broadcom WiFi**: `akmods`, `broadcom-wl` (e.g. BCM4360); kernel-devel and wl kernel module built at image build time (RPM Fusion already enabled globally). |
+| **bluefin-dx** | nvidia   | `ghcr.io/ublue-os/bluefin-dx-nvidia-open:stable` | Global + gaming (Nvidia stack comes from base). |
+| **aurora-dx**  | nvidia   | `ghcr.io/ublue-os/aurora-dx-nvidia-open:stable` | Global + gaming (Nvidia stack comes from base). |
+| **bazzite-dx** | nvidia   | `ghcr.io/ublue-os/bazzite-dx-nvidia:stable` | Global only (KDE + Nvidia open kernel module + DX tooling + gaming stack come from base). |
 
 To add or change images, edit `images.yaml` and add or adjust scripts under `build_files/<distro>/` (`common.sh` and `<variant>.sh`).
 
@@ -120,9 +129,10 @@ Configs: `disk_config/disk.toml` (QCOW2/raw), `disk_config/iso.toml` (anaconda I
 At build time the Containerfile runs `build-wrapper.sh`, which executes in order:
 
 1. **`global.sh`** — applied to every image.
-2. **`build_files/<distro>/common.sh`** — applied to all variants of that distro.
-3. **`build_files/<distro>/<variant>.sh`** — applied only to that (distro, variant).
-4. **Desktop/MIME DB refresh** — `update-desktop-database` and `update-mime-database`, so URL scheme handlers and MIME types from packages installed with `tsflags=noscripts` (and any future layered apps) are registered in the system caches.
+2. **`build_files/shared/gaming.sh`** — applied to every image except Bazzite (`DISTRO` matching `bazzite-*`).
+3. **`build_files/<distro>/common.sh`** — applied to all variants of that distro.
+4. **`build_files/<distro>/<variant>.sh`** — applied only to that (distro, variant).
+5. **Desktop/MIME DB refresh** — `update-desktop-database` and `update-mime-database`, so URL scheme handlers and MIME types from packages installed with `tsflags=noscripts` (and any future layered apps) are registered in the system caches.
 
 Edit these scripts to add packages, repos, or other changes. The CI matrix only rebuilds images whose layers (or `Containerfile` / `images.yaml`) changed.
 
