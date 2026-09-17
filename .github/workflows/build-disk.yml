@@ -34,6 +34,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has-images: ${{ steps.set-matrix.outputs.has-images }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
@@ -44,11 +45,17 @@ jobs:
           chmod +x scripts/ci-disk-matrix.sh scripts/list-images.sh
           MATRIX=$(./scripts/ci-disk-matrix.sh)
           echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          if [[ "$MATRIX" == "[]" ]]; then
+            echo "has-images=false" >> $GITHUB_OUTPUT
+          else
+            echo "has-images=true" >> $GITHUB_OUTPUT
+          fi
 
   build:
     name: Build disk (${{ matrix.distro }}-${{ matrix.variant }}) ${{ matrix.disk-type }}
     runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.platform == 'arm64') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     needs: prepare-disk-matrix
+    if: needs.prepare-disk-matrix.outputs.has-images == 'true'
     strategy:
       fail-fast: false
       matrix:
