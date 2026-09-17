@@ -12,10 +12,6 @@ dnf5 install -y \
   "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-${FEDORA_VERSION}.noarch.rpm" \
   "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-${FEDORA_VERSION}.noarch.rpm"
 
-# Steam + Gamescope stack
-dnf5 install -y steam gamescope gamemode mangohud
-dnf5 clean all
-
 ### Install Proton AG official packages
 
 # Proton VPN - Add official repository and install

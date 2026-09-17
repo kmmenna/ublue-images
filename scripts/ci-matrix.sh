@@ -30,10 +30,15 @@ affected_images() {
   while read -r distro variant base; do
     # Include this image only if a path that affects this specific (distro,variant) changed:
     # - global/build/Containerfile/images.yaml → all images
+    # - build_files/shared/gaming.sh → all distros except bazzite-*
     # - build_files/<distro>/common.sh → all variants of this distro
     # - build_files/<distro>/<variant>.sh → only this (distro,variant)
     if echo "$changed" | grep -qE "^(build_files/global\.sh|build_files/build-wrapper\.sh|build_files/build\.sh|Containerfile|images\.yaml)$"; then
       : "affected (global)"
+    elif echo "$changed" | grep -qE "^build_files/shared/gaming\.sh$"; then
+      case "$distro" in
+        bazzite-*) continue ;;
+      esac
     elif echo "$changed" | grep -qE "^build_files/${distro}/common\.sh$"; then
       : "affected (distro common)"
     elif echo "$changed" | grep -qE "^build_files/${distro}/${variant}\.sh$"; then

@@ -9,7 +9,7 @@ COPY build_files /
 FROM ${BASE_IMAGE}
 
 ## Other possible base images (see images.yaml for distro/variant -> base mapping):
-# ghcr.io/ublue-os/bazzite:latest
+# ghcr.io/ublue-os/bazzite-dx-nvidia:stable
 # ghcr.io/ublue-os/bluefin-nvidia:stable
 # ghcr.io/ublue-os/aurora-dx:stable
 # Universal Blue Images: https://github.com/orgs/ublue-os/packages
