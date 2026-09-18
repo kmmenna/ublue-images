@@ -27,7 +27,8 @@ Repository for my custom [Universal Blue](https://universal-blue.org/) (ublue) c
 │   │   └── nvidia.sh
 │   └── bazzite-dx/
 │       ├── common.sh
-│       └── nvidia.sh
+│       ├── nvidia.sh
+│       └── nvidia-gnome.sh
 ├── disk_config/           # Bootc Image Builder configs
 │   ├── disk.toml          # QCOW2/raw disk layout
 │   └── iso.toml           # Anaconda ISO (IMAGE_REF replaced in CI)
@@ -70,6 +71,7 @@ Defined in `images.yaml`. Every image receives **global** customizations first, 
 | **bluefin-dx** | nvidia   | `ghcr.io/ublue-os/bluefin-dx-nvidia-open:stable` | Global + gaming (Nvidia stack comes from base). |
 | **aurora-dx**  | nvidia   | `ghcr.io/ublue-os/aurora-dx-nvidia-open:stable` | Global + gaming (Nvidia stack comes from base). |
 | **bazzite-dx** | nvidia   | `ghcr.io/ublue-os/bazzite-dx-nvidia:stable` | Global only (KDE + Nvidia open kernel module + DX tooling + gaming stack come from base). |
+| **bazzite-dx** | nvidia-gnome | `ghcr.io/ublue-os/bazzite-dx-nvidia-gnome:stable` | Global only (GNOME + Nvidia open kernel module + DX tooling + gaming stack come from base). |
 
 To add or change images, edit `images.yaml` and add or adjust scripts under `build_files/<distro>/` (`common.sh` and `<variant>.sh`).
 
