@@ -12,3 +12,5 @@ aurora-dx:
 bazzite-dx:
   nvidia:
     base: ghcr.io/ublue-os/bazzite-dx-nvidia:stable
+  nvidia-gnome:
+    base: ghcr.io/ublue-os/bazzite-dx-nvidia-gnome:stable
