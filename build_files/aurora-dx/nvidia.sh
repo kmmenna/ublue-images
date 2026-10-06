@@ -1,5 +1,6 @@
 #!/bin/bash
-# Aurora desktop variant
+# Aurora nvidia variant
 set -ouex pipefail
 
-# Desktop-specific packages or configuration.
+# Aurora's upstream NVIDIA base currently omits the 32-bit NVIDIA userspace.
+source /ctx/shared/nvidia-multilib.sh
