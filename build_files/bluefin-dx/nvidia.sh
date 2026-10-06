@@ -2,4 +2,5 @@
 # Bluefin nvidia variant
 set -ouex pipefail
 
-# Nvidia-specific packages or configuration.
+# Bluefin's upstream NVIDIA base currently omits the 32-bit NVIDIA userspace.
+source /ctx/shared/nvidia-multilib.sh
