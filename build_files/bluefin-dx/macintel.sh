@@ -12,9 +12,14 @@ dnf5 install -y akmods
 # 2. Install broadcom-wl driver without running scriptlets:
 # The %post script of akmod-wl tries to run akmods (which fails as root).
 # Workaround: use a temporary DNF config with 'tsflags=noscripts' because '--setopt' may not properly apply 'tsflags' on all DNF5 versions.
+# RPM Fusion Nonfree remains disabled by default and participates only in this transaction.
+source /ctx/shared/rpmfusion-nonfree.sh
 DNF_NOSCRIPTS_CONF=$(mktemp)
 printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF}"
-dnf5 -c "${DNF_NOSCRIPTS_CONF}" install -y broadcom-wl
+dnf5 -c "${DNF_NOSCRIPTS_CONF}" install -y \
+  --enablerepo=rpmfusion-nonfree \
+  --enablerepo=rpmfusion-nonfree-updates \
+  broadcom-wl
 rm -f "${DNF_NOSCRIPTS_CONF}"
 
 # 3. Install kernel-devel for module compilation (uname -r in CI refers to the host kernel, not the image kernel)
