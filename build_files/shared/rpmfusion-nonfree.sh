@@ -16,4 +16,4 @@ fi
 dnf5 install -y fedora-workstation-repositories
 
 # Prevent RPM Fusion Nonfree from participating in unrelated package resolution.
-sed -i 's/^enabled=1$/enabled=0/' /etc/yum.repos.d/rpmfusion-nonfree*.repo
+dnf5 config-manager disable --create-missing-dir 'rpmfusion-nonfree*'
