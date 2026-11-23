@@ -10,7 +10,11 @@ FEDORA_VERSION=$(rpm -E %fedora)
 
 # Proton VPN - Add official repository and install
 # Install with tsflags=noscripts: the daemon's %posttrans tries to run systemctl (no systemd in container build).
-wget -q "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-1.0.3-1.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
+PROTONVPN_RELEASE_VERSION="1.0.3-1"
+if [[ "${FEDORA_VERSION}" == "45" ]]; then
+  PROTONVPN_RELEASE_VERSION="1.0.5-1"
+fi
+wget --no-verbose "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-${PROTONVPN_RELEASE_VERSION}.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
 dnf5 install -y /tmp/protonvpn-stable-release.rpm
 rm -f /tmp/protonvpn-stable-release.rpm
 dnf5 check-update --refresh || true
