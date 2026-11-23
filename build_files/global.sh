@@ -2,22 +2,25 @@
 
 set -ouex pipefail
 
-FEDORA_VERSION=$(rpm -E %fedora)
-
 ### Install packages (global - applied to all images)
 
 ### Install Proton AG official packages
 
-# Proton VPN - Add official repository and install
+# Proton VPN - Let DNF resolve packages from the official stable repository.
+# Keep signature checks for both the repository metadata and its RPMs.
+install -d /etc/yum.repos.d
+cat > /etc/yum.repos.d/protonvpn-fedora-stable.repo <<'EOF'
+[protonvpn-fedora-stable]
+name=Proton VPN Fedora Stable
+baseurl=https://repo.protonvpn.com/fedora-$releasever-stable
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://repo.protonvpn.com/fedora-$releasever-stable/public_key.asc
+skip_if_unavailable=0
+EOF
+
 # Install with tsflags=noscripts: the daemon's %posttrans tries to run systemctl (no systemd in container build).
-PROTONVPN_RELEASE_VERSION="1.0.3-1"
-if [[ "${FEDORA_VERSION}" == "45" ]]; then
-  PROTONVPN_RELEASE_VERSION="1.0.5-1"
-fi
-wget --no-verbose "https://repo.protonvpn.com/fedora-${FEDORA_VERSION}-stable/protonvpn-stable-release/protonvpn-stable-release-${PROTONVPN_RELEASE_VERSION}.noarch.rpm" -O /tmp/protonvpn-stable-release.rpm
-dnf5 install -y /tmp/protonvpn-stable-release.rpm
-rm -f /tmp/protonvpn-stable-release.rpm
-dnf5 check-update --refresh || true
 DNF_NOSCRIPTS_CONF=$(mktemp)
 printf '[main]\ntsflags=noscripts\n' > "${DNF_NOSCRIPTS_CONF}"
 dnf5 -c "${DNF_NOSCRIPTS_CONF}" install -y proton-vpn-gnome-desktop
